@@ -918,58 +918,208 @@ function ensureAudio() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
+// Helper: create an oscillator with gain envelope
+function makeOsc(type, freq, gainVal, start, stop, dest) {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.connect(g);
+  g.connect(dest || audioCtx.destination);
+  o.frequency.setValueAtTime(freq, start);
+  g.gain.setValueAtTime(gainVal, start);
+  return { osc: o, gain: g, start, stop };
+}
+
+// DING — bright bell-like chime when points are awarded
+// Two layered sine tones with a sharp attack and warm decay
 function playDing() {
   ensureAudio();
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.connect(g); g.connect(audioCtx.destination);
-  o.type = 'sine';
-  o.frequency.setValueAtTime(1200, audioCtx.currentTime);
-  o.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
-  g.gain.setValueAtTime(0.3, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-  o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime + 0.4);
+  const t = audioCtx.currentTime;
+
+  // High bell tone
+  const o1 = audioCtx.createOscillator();
+  const g1 = audioCtx.createGain();
+  o1.type = 'sine';
+  o1.connect(g1); g1.connect(audioCtx.destination);
+  o1.frequency.setValueAtTime(1568, t); // G6
+  g1.gain.setValueAtTime(0.35, t);
+  g1.gain.exponentialRampToValueAtTime(0.15, t + 0.08);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+  o1.start(t); o1.stop(t + 0.6);
+
+  // Harmonic shimmer
+  const o2 = audioCtx.createOscillator();
+  const g2 = audioCtx.createGain();
+  o2.type = 'sine';
+  o2.connect(g2); g2.connect(audioCtx.destination);
+  o2.frequency.setValueAtTime(2349, t); // D7 (fifth above)
+  g2.gain.setValueAtTime(0.15, t);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+  o2.start(t); o2.stop(t + 0.45);
+
+  // Sub-octave warmth
+  const o3 = audioCtx.createOscillator();
+  const g3 = audioCtx.createGain();
+  o3.type = 'sine';
+  o3.connect(g3); g3.connect(audioCtx.destination);
+  o3.frequency.setValueAtTime(784, t); // G5
+  g3.gain.setValueAtTime(0.12, t);
+  g3.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+  o3.start(t); o3.stop(t + 0.5);
 }
 
+// BUZZ — deep, authoritative wrong-answer buzzer
+// Layered low sawtooth + square with rumble
 function playBuzz() {
   ensureAudio();
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.connect(g); g.connect(audioCtx.destination);
-  o.type = 'sawtooth';
-  o.frequency.setValueAtTime(120, audioCtx.currentTime);
-  g.gain.setValueAtTime(0.25, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.7);
-  o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime + 0.7);
+  const t = audioCtx.currentTime;
+
+  // Primary buzz — thick sawtooth
+  const o1 = audioCtx.createOscillator();
+  const g1 = audioCtx.createGain();
+  o1.type = 'sawtooth';
+  o1.connect(g1); g1.connect(audioCtx.destination);
+  o1.frequency.setValueAtTime(90, t);
+  o1.frequency.linearRampToValueAtTime(75, t + 0.8);
+  g1.gain.setValueAtTime(0.3, t);
+  g1.gain.setValueAtTime(0.3, t + 0.5);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+  o1.start(t); o1.stop(t + 0.9);
+
+  // Harsh square overtone
+  const o2 = audioCtx.createOscillator();
+  const g2 = audioCtx.createGain();
+  o2.type = 'square';
+  o2.connect(g2); g2.connect(audioCtx.destination);
+  o2.frequency.setValueAtTime(135, t);
+  o2.frequency.linearRampToValueAtTime(110, t + 0.7);
+  g2.gain.setValueAtTime(0.12, t);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+  o2.start(t); o2.stop(t + 0.75);
+
+  // Sub-bass rumble
+  const o3 = audioCtx.createOscillator();
+  const g3 = audioCtx.createGain();
+  o3.type = 'sine';
+  o3.connect(g3); g3.connect(audioCtx.destination);
+  o3.frequency.setValueAtTime(55, t);
+  g3.gain.setValueAtTime(0.2, t);
+  g3.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+  o3.start(t); o3.stop(t + 0.85);
 }
 
+// REVEAL — satisfying two-tone "ding-ding" flip sound
+// Quick ascending pair of tones like a game show board flip
 function playReveal() {
   ensureAudio();
-  const o = audioCtx.createOscillator();
-  const g = audioCtx.createGain();
-  o.connect(g); g.connect(audioCtx.destination);
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(600, audioCtx.currentTime);
-  o.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.12);
-  g.gain.setValueAtTime(0.2, audioCtx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
-  o.start(audioCtx.currentTime); o.stop(audioCtx.currentTime + 0.25);
+  const t = audioCtx.currentTime;
+
+  // First tone — attack
+  const o1 = audioCtx.createOscillator();
+  const g1 = audioCtx.createGain();
+  o1.type = 'sine';
+  o1.connect(g1); g1.connect(audioCtx.destination);
+  o1.frequency.setValueAtTime(880, t); // A5
+  o1.frequency.exponentialRampToValueAtTime(1175, t + 0.06); // slide up to D6
+  g1.gain.setValueAtTime(0.25, t);
+  g1.gain.exponentialRampToValueAtTime(0.08, t + 0.1);
+  g1.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+  o1.start(t); o1.stop(t + 0.25);
+
+  // Second tone — bright confirmation
+  const o2 = audioCtx.createOscillator();
+  const g2 = audioCtx.createGain();
+  o2.type = 'sine';
+  o2.connect(g2); g2.connect(audioCtx.destination);
+  o2.frequency.setValueAtTime(1319, t + 0.07); // E6
+  g2.gain.setValueAtTime(0, t);
+  g2.gain.linearRampToValueAtTime(0.22, t + 0.08);
+  g2.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+  o2.start(t + 0.07); o2.stop(t + 0.35);
+
+  // Soft triangle shimmer
+  const o3 = audioCtx.createOscillator();
+  const g3 = audioCtx.createGain();
+  o3.type = 'triangle';
+  o3.connect(g3); g3.connect(audioCtx.destination);
+  o3.frequency.setValueAtTime(2637, t + 0.07); // E7
+  g3.gain.setValueAtTime(0, t);
+  g3.gain.linearRampToValueAtTime(0.08, t + 0.08);
+  g3.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+  o3.start(t + 0.07); o3.stop(t + 0.3);
 }
 
+// WIN — triumphant ascending fanfare
+// Classic game-show victory: bold brass-like tones climbing to a big finish
 function playWin() {
   ensureAudio();
-  [523, 659, 784, 1047].forEach((freq, i) => {
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.connect(g); g.connect(audioCtx.destination);
-    o.type = 'sine';
-    o.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.15);
-    g.gain.setValueAtTime(0, audioCtx.currentTime + i * 0.15);
-    g.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + i * 0.15 + 0.05);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.15 + 0.4);
-    o.start(audioCtx.currentTime + i * 0.15);
-    o.stop(audioCtx.currentTime + i * 0.15 + 0.5);
+  const t = audioCtx.currentTime;
+
+  // Fanfare melody: C5 - E5 - G5 - (pause) - C6 with harmonies
+  const melody = [
+    { freq: 523, harm: 784, time: 0, dur: 0.22 },      // C5 + G5
+    { freq: 659, harm: 988, time: 0.2, dur: 0.22 },     // E5 + B5
+    { freq: 784, harm: 1175, time: 0.4, dur: 0.22 },    // G5 + D6
+    { freq: 1047, harm: 1568, time: 0.7, dur: 0.6 },    // C6 + G6 (big finish)
+  ];
+
+  melody.forEach(note => {
+    // Main tone (bright, brass-like)
+    const o1 = audioCtx.createOscillator();
+    const g1 = audioCtx.createGain();
+    o1.type = 'sawtooth';
+    o1.connect(g1); g1.connect(audioCtx.destination);
+    o1.frequency.setValueAtTime(note.freq, t + note.time);
+    g1.gain.setValueAtTime(0, t + note.time);
+    g1.gain.linearRampToValueAtTime(0.12, t + note.time + 0.03);
+    g1.gain.setValueAtTime(0.1, t + note.time + note.dur * 0.7);
+    g1.gain.exponentialRampToValueAtTime(0.001, t + note.time + note.dur);
+    o1.start(t + note.time); o1.stop(t + note.time + note.dur + 0.1);
+
+    // Sine body (warm core)
+    const o2 = audioCtx.createOscillator();
+    const g2 = audioCtx.createGain();
+    o2.type = 'sine';
+    o2.connect(g2); g2.connect(audioCtx.destination);
+    o2.frequency.setValueAtTime(note.freq, t + note.time);
+    g2.gain.setValueAtTime(0, t + note.time);
+    g2.gain.linearRampToValueAtTime(0.18, t + note.time + 0.02);
+    g2.gain.exponentialRampToValueAtTime(0.001, t + note.time + note.dur + 0.15);
+    o2.start(t + note.time); o2.stop(t + note.time + note.dur + 0.2);
+
+    // Harmony
+    const o3 = audioCtx.createOscillator();
+    const g3 = audioCtx.createGain();
+    o3.type = 'sine';
+    o3.connect(g3); g3.connect(audioCtx.destination);
+    o3.frequency.setValueAtTime(note.harm, t + note.time);
+    g3.gain.setValueAtTime(0, t + note.time);
+    g3.gain.linearRampToValueAtTime(0.08, t + note.time + 0.03);
+    g3.gain.exponentialRampToValueAtTime(0.001, t + note.time + note.dur + 0.1);
+    o3.start(t + note.time); o3.stop(t + note.time + note.dur + 0.15);
   });
+
+  // Final shimmering high tone on the big note
+  const oShimmer = audioCtx.createOscillator();
+  const gShimmer = audioCtx.createGain();
+  oShimmer.type = 'triangle';
+  oShimmer.connect(gShimmer); gShimmer.connect(audioCtx.destination);
+  oShimmer.frequency.setValueAtTime(2093, t + 0.7); // C7
+  gShimmer.gain.setValueAtTime(0, t + 0.7);
+  gShimmer.gain.linearRampToValueAtTime(0.06, t + 0.75);
+  gShimmer.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+  oShimmer.start(t + 0.7); oShimmer.stop(t + 1.5);
+
+  // Sub-bass punch on final note
+  const oSub = audioCtx.createOscillator();
+  const gSub = audioCtx.createGain();
+  oSub.type = 'sine';
+  oSub.connect(gSub); gSub.connect(audioCtx.destination);
+  oSub.frequency.setValueAtTime(131, t + 0.7); // C3
+  gSub.gain.setValueAtTime(0, t + 0.7);
+  gSub.gain.linearRampToValueAtTime(0.15, t + 0.72);
+  gSub.gain.exponentialRampToValueAtTime(0.001, t + 1.3);
+  oSub.start(t + 0.7); oSub.stop(t + 1.3);
 }
 
 // ─── GAME STATE ───
