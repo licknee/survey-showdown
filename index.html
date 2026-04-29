@@ -534,9 +534,43 @@
   .answer-slot .slot-front {
     background: linear-gradient(135deg, #1a3a8a, #0d2060);
     border: 2px solid #2a5abb; justify-content: center;
+    padding: 0 16px;
   }
   .answer-slot .slot-front .number {
     font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #fff;
+    min-width: 40px; text-align: center;
+  }
+
+  /* Host-only answer preview on unrevealed tiles */
+  .answer-slot .slot-front .host-preview {
+    display: none;
+  }
+  body:not(.audience-mode) .answer-slot .slot-front .host-preview {
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+    align-items: center;
+    margin-left: 12px;
+    overflow: hidden;
+  }
+  body:not(.audience-mode) .answer-slot .slot-front .host-preview .hp-text {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.35);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  body:not(.audience-mode) .answer-slot .slot-front .host-preview .hp-pts {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: rgba(255, 215, 0, 0.35);
+    margin-left: 12px;
+    flex-shrink: 0;
+  }
+  body:not(.audience-mode) .answer-slot.revealed .slot-front .host-preview {
+    display: none;
   }
   .answer-slot .slot-back {
     background: linear-gradient(135deg, #2a5abb, #1a3a8a);
@@ -871,8 +905,7 @@
   <div class="host-controls">
     <button class="btn btn-audience" onclick="openAudienceDisplay()">&#128250; Audience Display</button>
     <button class="btn btn-strike" onclick="addStrike()">&#10060; STRIKE</button>
-    <button class="btn btn-award" id="btn-award-1" onclick="awardPoints(1)">Award to Team 1</button>
-    <button class="btn btn-award" id="btn-award-2" onclick="awardPoints(2)">Award to Team 2</button>
+    <button class="btn btn-award" id="btn-award" onclick="awardPoints()">Award Points</button>
     <button class="btn btn-switch" onclick="switchActiveTeam()">&#8644; Switch Team</button>
     <button class="btn btn-reveal-all" onclick="revealAll()">Reveal All</button>
     <button class="btn btn-next" onclick="nextRound()">Next Round &#9654;</button>
@@ -1275,8 +1308,7 @@ function startGame() {
 
   document.getElementById('team1-display-name').textContent = teamNames[0];
   document.getElementById('team2-display-name').textContent = teamNames[1];
-  document.getElementById('btn-award-1').textContent = `🏆 Award to ${teamNames[0]}`;
-  document.getElementById('btn-award-2').textContent = `🏆 Award to ${teamNames[1]}`;
+  document.getElementById('btn-award').textContent = `🏆 Award to ${teamNames[0]}`;
 
   gamePhase = 'playing';
 
@@ -1314,7 +1346,7 @@ function loadRound() {
     slot.dataset.index = i;
     if (!IS_AUDIENCE) slot.onclick = () => revealAnswer(i);
     slot.innerHTML = `<div class="slot-inner">
-      <div class="slot-front"><span class="number">${i + 1}</span></div>
+      <div class="slot-front"><span class="number">${i + 1}</span><div class="host-preview"><span class="hp-text">${ans.text}</span><span class="hp-pts">${ans.points}</span></div></div>
       <div class="slot-back">
         <span class="answer-text">${ans.text}</span>
         <span class="answer-points">${ans.points}</span>
@@ -1377,7 +1409,8 @@ function addStrike() {
   broadcast('strike', { strikes });
 }
 
-function awardPoints(team) {
+function awardPoints() {
+  const team = activeTeam;
   scores[team - 1] += roundPoints;
   roundPoints = 0;
   document.getElementById('round-points').textContent = '0';
@@ -1397,6 +1430,8 @@ function switchActiveTeam() {
 function setActiveTeam(team) {
   document.getElementById('team1-score-card').classList.toggle('active', team === 1);
   document.getElementById('team2-score-card').classList.toggle('active', team === 2);
+  const btn = document.getElementById('btn-award');
+  if (btn) btn.textContent = `🏆 Award to ${teamNames[team - 1]}`;
 }
 
 function updateScores() {
@@ -1538,7 +1573,7 @@ function audienceApplyFullSync(msg) {
       revealedAnswers.add(i);
     }
     slot.innerHTML = `<div class="slot-inner">
-      <div class="slot-front"><span class="number">${i + 1}</span></div>
+      <div class="slot-front"><span class="number">${i + 1}</span><div class="host-preview"><span class="hp-text">${ans.text}</span><span class="hp-pts">${ans.points}</span></div></div>
       <div class="slot-back">
         <span class="answer-text">${ans.text}</span>
         <span class="answer-points">${ans.points}</span>
